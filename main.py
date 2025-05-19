@@ -8,9 +8,9 @@ from flask_cors import CORS
 from datetime import datetime
 
 # Импорт сервисов
-from .services.wayback_service import WaybackService
-from .services.openrouter_service import OpenRouterService
-from .services.report_service import ReportService
+from services.wayback_service import WaybackService
+from services.openrouter_service import OpenRouterService
+from services.report_service import ReportService
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
