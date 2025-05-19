@@ -13,8 +13,9 @@ COPY . .
 # Создание директории для отчетов
 RUN mkdir -p /app/reports
 
-# Переменная окружения для порта
+# Переменная окружения для порта и PYTHONPATH
 ENV PORT=8000
+ENV PYTHONPATH=/app
 
 # Запуск приложения
 CMD gunicorn --bind 0.0.0.0:${PORT} main:app

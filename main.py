@@ -2,15 +2,16 @@ import os
 import json
 import uuid
 import logging
+import io
 from typing import Dict, List, Any, Optional
 from flask import Flask, request, jsonify, send_file, Blueprint
 from flask_cors import CORS
 from datetime import datetime
 
-# Импорт сервисов
-from wayback_service import WaybackService
-from openrouter_service import OpenRouterService
-from report_service import ReportService
+# Импорт сервисов (обновлены для новой структуры)
+from services.wayback_service import WaybackService
+from services.openrouter_service import OpenRouterService
+from services.report_service import ReportService
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -70,8 +71,8 @@ async def create_analysis_task():
         }), 201
         
     except Exception as e:
-        logger.error(f"Error creating analysis task: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error creating analysis task: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e), "type": type(e).__name__}), 500
 
 @api_bp.route('/analysis/tasks/<task_id>', methods=['GET'])
 def get_task_status(task_id):
@@ -142,7 +143,7 @@ def get_report(task_id, format):
         else:
             return jsonify({"error": "Unsupported format"}), 400
     except Exception as e:
-        logger.error(f"Error generating report: {str(e)}")
+        logger.error(f"Error generating report: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/thematic-analysis/<task_id>', methods=['POST'])
@@ -185,7 +186,7 @@ async def start_thematic_analysis(task_id):
         })
         
     except Exception as e:
-        logger.error(f"Error starting thematic analysis: {str(e)}")
+        logger.error(f"Error starting thematic analysis: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/thematic-analysis/<task_id>/results', methods=['GET'])
@@ -229,7 +230,7 @@ def create_ai_agent():
             return jsonify(result), 400
         
     except Exception as e:
-        logger.error(f"Error creating AI agent: {str(e)}")
+        logger.error(f"Error creating AI agent: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/ai-agents', methods=['GET'])
@@ -247,7 +248,7 @@ def list_ai_agents():
             return jsonify(result), 400
         
     except Exception as e:
-        logger.error(f"Error listing AI agents: {str(e)}")
+        logger.error(f"Error listing AI agents: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/trained-models', methods=['POST'])
@@ -273,7 +274,7 @@ def save_trained_model():
             return jsonify(result), 400
         
     except Exception as e:
-        logger.error(f"Error saving trained model: {str(e)}")
+        logger.error(f"Error saving trained model: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/trained-models', methods=['GET'])
@@ -291,20 +292,86 @@ def list_trained_models():
             return jsonify(result), 400
         
     except Exception as e:
-        logger.error(f"Error listing trained models: {str(e)}")
+        logger.error(f"Error listing trained models: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
+# Добавление обработчика для корневого URL
 def create_app():
     """
     Создание и настройка приложения Flask.
     """
     app = Flask(__name__)
     
-    # Настройка CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # Настройка CORS с улучшенной безопасностью
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": os.getenv("ALLOWED_ORIGINS", "*").split(","),
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Регистрация Blueprint
     app.register_blueprint(api_bp)
+    
+    # Добавление обработчика для корневого URL
+    @app.route('/', methods=['GET'])
+    def index():
+        return jsonify({
+            "status": "ok",
+            "message": "API is running",
+            "version": "1.0",
+            "endpoints": {
+                "POST /api/v1/analysis/tasks": "Create analysis task",
+                "GET /api/v1/analysis/tasks/<task_id>": "Get task status",
+                "GET /api/v1/analysis/tasks/<task_id>/results": "Get task results",
+                "GET /api/v1/reports/<task_id>/<format>": "Get report",
+                "POST /api/v1/thematic-analysis/<task_id>": "Start thematic analysis",
+                "GET /api/v1/thematic-analysis/<task_id>/results": "Get thematic analysis results",
+                "POST /api/v1/ai-agents": "Create AI agent",
+                "GET /api/v1/ai-agents": "List AI agents",
+                "POST /api/v1/trained-models": "Save trained model",
+                "GET /api/v1/trained-models": "List trained models"
+            }
+        })
+    
+    # Добавление проверки работоспособности (health check)
+    @app.route('/health', methods=['GET'])
+    def health_check():
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0"
+        })
+    
+    # Добавление глобальных обработчиков ошибок
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({"error": "Resource not found", "details": str(error)}), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({
+            "error": "Method not allowed", 
+            "details": str(error),
+            "allowed_methods": error.valid_methods if hasattr(error, 'valid_methods') else []
+        }), 405
+
+    @app.errorhandler(500)
+    def server_error(error):
+        return jsonify({"error": "Internal server error", "details": str(error)}), 500
+    
+    # Добавление логирования запросов
+    @app.before_request
+    def log_request_info():
+        app.logger.info('Request: %s %s', request.method, request.path)
+        app.logger.debug('Headers: %s', request.headers)
+        app.logger.debug('Body: %s', request.get_data())
+
+    @app.after_request
+    def log_response_info(response):
+        app.logger.info('Response: %s %s %s', request.method, request.path, response.status)
+        return response
     
     return app
 
