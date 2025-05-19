@@ -1,12 +1,8 @@
-flask==2.3.3
-flask-cors==4.0.0
-flask-restful==0.3.10
-gunicorn==21.2.0
-pandas==2.1.0
-openpyxl==3.1.2
-aiohttp==3.8.5
+fastapi
+uvicorn[standard]
+python-dotenv
+celery
+redis
+aiohttp
 waybackpy==3.0.6
-python-dotenv==1.0.0
-tqdm==4.66.1
-requests==2.31.0
-matplotlib==3.8.0
+# Add other core dependencies here as needed

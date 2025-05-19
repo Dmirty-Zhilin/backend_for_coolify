@@ -1,21 +1,22 @@
-# Dockerfile для бэкенда
 FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set work directory
 WORKDIR /app
 
-# Установка зависимостей
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода
-COPY . .
+# Copy project
+COPY ./app /app/app
 
-# Создание директории для отчетов
-RUN mkdir -p /app/reports
+# Expose port
+EXPOSE 8000
 
-# Переменная окружения для порта и PYTHONPATH
-ENV PORT=8000
-ENV PYTHONPATH=/app
-
-# Запуск приложения
-CMD gunicorn --bind 0.0.0.0:${PORT} main:app
+# Run app
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
