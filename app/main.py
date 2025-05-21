@@ -12,7 +12,8 @@ app.add_middleware(
         "https://t0gw080oook0sows40k8wkko.alettidesign.ru",
         "http://t0gw080oook0sows40k8wkko.alettidesign.ru",
         "https://alettidesign.ru",
-        "http://alettidesign.ru"
+        "http://alettidesign.ru",
+        "http://localhost:3060"  # Добавлен локальный адрес фронтенда для разработки
     ],  # Домены фронтенда
     allow_credentials=True,
     allow_methods=["*"],  # Разрешаем все HTTP методы
@@ -22,6 +23,11 @@ app.add_middleware(
 @app.get("/", tags=["Root"])
 async def read_root():
     return {"message": "Welcome to Drop Domain Analyzer API"}
+
+# Добавляем эндпоинт для проверки здоровья системы
+@app.get("/api/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok"}
 
 # Include the analysis router
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis Tasks"])
