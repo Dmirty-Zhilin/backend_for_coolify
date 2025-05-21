@@ -4,7 +4,7 @@ from app.api.endpoints import analysis # Import the analysis router
 
 app = FastAPI(title="Drop Domain Analyzer API", version="0.1.0")
 
-# Добавляем CORS middleware
+# Добавляем CORS middleware с расширенным списком доменов
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -12,8 +12,12 @@ app.add_middleware(
         "https://t0gw080oook0sows40k8wkko.alettidesign.ru",
         "http://t0gw080oook0sows40k8wkko.alettidesign.ru",
         "https://alettidesign.ru",
-        "http://alettidesign.ru"
-    ],  # Домены фронтенда
+        "http://alettidesign.ru",
+        "https://pgo844oscgcg4wwsgccs0scg.alettidesign.ru",
+        "http://pgo844oscgcg4wwsgccs0scg.alettidesign.ru",
+        "http://localhost:3060",
+        "http://localhost:3000"
+    ],  # Расширенный список доменов фронтенда
     allow_credentials=True,
     allow_methods=["*"],  # Разрешаем все HTTP методы
     allow_headers=["*"],  # Разрешаем все заголовки
